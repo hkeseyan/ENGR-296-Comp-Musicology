@@ -1,0 +1,133 @@
+---
+title: "Songinfo"
+author: "Hovanes Keseyan"
+date: "December 13, 2017"
+output: word_document
+geometry: margin=.75in
+---
+
+## Data Preparation
+
+### Load the songs into R
+
+Asks for song locations and loads into R.
+
+```{r songloader, echo=TRUE}
+songloader <- function()
+{
+  n <- readline("How many songs would you like to load? ")
+  n <- as.integer(n)
+  if(is.na(n)){
+    n <- songloader()
+  }
+  wd <- readline("Working Directory: ")
+  #if(is.na(wd)) getwd()
+  #else setwd(wd)
+  f <- vector(length = n)
+  v <- matrix(nrow = n, ncol = 7)
+  songs <- list()
+  for (i in 1:n) {
+    f[i] <- readline("File name: ")
+    v[i] <- readline("Set variable name: ")
+    songs[[i]] <- read.csv(f[i], header=F, row.names = NULL,
+                           col.names = c("track", "time", "type", 4:7), stringsAsFactors=FALSE)
+  }
+
+  return(songs)
+}
+songloader
+
+
+##ask for directory??
+setwd("C:/Users/Hovanes/Desktop/UCR/Project/DavesMIDIfiles")
+##ask for filename??
+a = read.csv("a.csv", header=F, row.names = NULL, col.names = c("track", "time", "type", 4:7), stringsAsFactors=FALSE)
+```
+
+### Extract data
+
+Start with only the frequency data for now
+
+```{r extract, echo=TRUE}
+a_notes = a[a$type==" Note_on_c",]
+colnames(a_notes)=c("track", "time", "type", "channel", "note", "velocity")
+```
+
+### Convert note on c to note off c
+
+Separate the note on c types that have velocity zero (end note) so it's easier to plot
+
+```{r noteoffc, echo=TRUE}
+a_notes_on = a_notes[a_notes$velocity!="0",]
+a_notes_off = a_notes[a_notes$velocity=="0",]
+
+a_notes_first6=a_notes_on[a_notes_on$track<=6,]
+
+a_durations <- a_notes_off[a_notes_off$track<=6, "time"] - a_notes_on[a_notes_on$track<=6,"time"]
+
+head(a_notes)
+```
+---
+
+\pagebreak
+
+---
+
+# Song statistics
+
+### Number of notes: `r nrow(a_notes_first6)`
+
+### Duration (seconds): `r sum(a_durations)/1000`
+
+Number of tracks analyzed: 5
+
+Average number of notes per track: `r nrow(a_notes_first6)/5`
+
+Average seconds per note per track: `r (sum(a_durations)/1000)/(nrow(a_notes_first6)/5)`
+
+Average notes per minute per track: `r (nrow(a_notes_first6)/5)/(sum(a_durations)/1000)*60`
+
+### Derived Tempo: `r (nrow(a_notes_first6)/5)/(sum(a_durations)/1000)*60/4`
+
+
+
+---
+\pagebreak
+
+# Plots of note frequencies
+
+```{r plotnotes, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=5}
+require(ggplot2)
+require(methods)
+
+#plot(a_notes_on$time, a_notes_on$X5, xlim = c(0,1000), ylim = c(40,90))
+
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(0, 15000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(15000, 30000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(30000, 45000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(45000, 60000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(60000, 75000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(75000, 90000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(90000, 105000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(105000, 120000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(120000, 135000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(135000, 150000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(150000, 165000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+a_plot <- ggplot(a_notes_first6, aes(time, note, colour=track, size=abs(a_durations))) + geom_point() + coord_cartesian(xlim = c(165000, 180000)) + scale_color_gradient(low="red", high="blue")
+a_plot
+```
+
+
+
+

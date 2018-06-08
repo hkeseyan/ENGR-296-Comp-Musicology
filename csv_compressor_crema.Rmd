@@ -1,0 +1,56 @@
+---
+title: "csv_compressor_crema"
+author: "Hovanes Keseyan"
+date: "March 19, 2018"
+output: word_document
+---
+
+```{r songnames, include=F}
+
+# Access Repository for Song Names and Load Songs to R
+
+setwd("E:/DATA/CSV/wd") # set working directory to location of csv files
+songnames = list.files(pattern="*.csv") # retrieve song names from the working directory
+length(songnames) # check number of songs loaded
+
+songs <- list()
+for (i in 1:length(songnames)) songs[[i]] <- read.csv(songnames[i]) # load every song and assign the song name to the name of the data set
+object.size(songs) # size of uncompressed songs in memory
+names(songs) <- songnames
+```
+
+```{r songscompressed, include=F}
+
+# Compress Songs
+
+songscompressed <- lapply(songs, function(x){x[x[,2]=="Note On",c(5,7)]})
+object.size(songscompressed) # size of compressed songs in memory
+
+setwd("E:/DATA/CSV/wdcompressed") # set working directory to location where compressed files will write
+lapply(1:length(songscompressed), function(i) write.csv(songscompressed[[i]], 
+                                                file = paste0(names(songscompressed[i]), ".csv"),
+                                                row.names = FALSE))
+```
+
+Number of Songs in Repository: `r length(songnames)`
+
+**Uncompressed** memory allocation: **`r round(object.size(songs)/1048576,1)` MB**
+
+**Compressed** memory allocation: **`r round(object.size(songscompressed)/1048576,1)` MB**
+
+The compressed repository is **`r round(object.size(songscompressed)/object.size(songs) * 100, 2)`%** of the size of the uncompressed repository.
+
+```{r plots, echo=F, warning=F, message=F}
+stages <- c("Uncompressed", "Compressed")
+mem <- c(object.size(songs)/1048576, object.size(songscompressed)/1048576)
+dat <- data.frame(stages, mem)
+require(ggplot2)
+require(methods)
+
+plot <- ggplot(dat, aes(stages,mem)) + geom_bar(aes(fill=stages), stat="identity") + ggtitle("Effectiveness") + ylab("Memory Allocated (MB)") + xlab("Stage")
+plot
+
+```
+
+
+

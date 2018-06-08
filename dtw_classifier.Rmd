@@ -1,0 +1,144 @@
+---
+title: "dtw_classifier"
+author: "Hovanes Keseyan"
+date: "March 20, 2018"
+output: html_document
+---
+
+## Import the songs to be classified
+
+```{r import}
+setwd("E:/DATA/CSV/wdcompressed") # set working directory to location of compressed files
+songnames <- list.files(pattern="*.csv") # retrieve song names from the working directory
+#songnames <- songnames[1:50] ####
+length(songnames) # check number of songs loaded
+songs <- list()
+for (i in 1:length(songnames)) songs[[i]] <- read.csv(songnames[i],header = T) # load every song and assign the song name to the name of the data set
+names(songs) <- songnames
+```
+
+## Perform Temporal Music Notation Normalization on Song List
+
+```{r tempnorm}
+ticks <- sapply(songs,function(x){x[nrow(x),2]}) # Retrieve largest time value in ticks for each song in list
+tmax <- max(unlist(ticks)) # largest cumulative time value in entire list
+#series <- list()
+series <- matrix(nrow = length(songs), ncol = tmax)
+
+for (i in 1:length(songs)) {
+  x <- songs[[i]]  # each song
+  notes <- x[,1]  # note values ####
+  times <- x[,2] # times of each note ####
+  #s <- rep(mean(notes), tmax) # time series of notes
+  s <- rep(0, tmax)
+  for (t in times) {
+    s[t] <- mean(notes[times==t]) # for every value of t where count>1, average the notes
+  }
+  series[i,] <- s
+}
+```
+
+```{r writecsv}
+
+setwd("E:/DATA/CSV/tmnn") # set working directory to location where files will write
+write.csv(series, "series.csv")
+#lapply(1:length(series), function(i) write.csv(series[[i]], 
+#                                                file = paste0(names(songs[i]), ".csv"),
+#                                                row.names = FALSE))
+
+```
+
+## Classify using Euclidean Distance
+
+```{r euc}
+
+```
+
+## Classify using Dynamic Time Warping (DTW)
+
+```{r dtw, echo=FALSE, eval=FALSE}
+require(dtwclust)
+acf_fun <- function(dat, ...) {
+    lapply(dat, function(x) {
+    as.numeric(acf(x, lag.max = 50, plot = FALSE)$acf)
+  })
+}
+cfgs <- compare_clusterings_configs(
+  types = c("p", "h", "f", "t"),
+  k = 19L:20L,
+  controls = list(
+    partitional = partitional_control(
+    iter.max = 30L,
+    nrep = 1L
+    ),
+    hierarchical = hierarchical_control(
+    method = "all"
+    ),
+    fuzzy = fuzzy_control(
+    ## notice the vector
+    fuzziness = c(2, 2.5),
+    iter.max = 30L
+    ),
+    tadpole = tadpole_control(
+    ## notice the vectors
+    dc = c(1.5, 2),
+    window.size = 19L:20L
+    )
+  ),
+  preprocs = pdc_configs(
+    type = "preproc",
+    ## shared
+    none = list(),
+    zscore = list(center = c(FALSE)),
+    ## only for fuzzy
+    fuzzy = list(
+    acf_fun = list()
+  ),
+  ## only for tadpole
+  tadpole = list(
+    reinterpolate = list(new.length = 205L)
+    ),
+    ## specify which should consider the shared ones
+    share.config = c("p", "h")
+  ),
+  distances = pdc_configs(
+    type = "distance",
+    sbd = list(),
+    fuzzy = list(
+    L2 = list()
+  ),
+  share.config = c("p", "h")
+  ),
+  centroids = pdc_configs(
+      type = "centroid",
+      partitional = list(
+      pam = list()
+    ),
+    ## special name 'default'
+    hierarchical = list(
+      default = list()
+    ),
+    fuzzy = list(
+      fcmdd = list()
+    ),
+    tadpole = list(
+      default = list(),
+      shape_extraction = list(znorm = TRUE)
+    )
+  )
+)
+compare_clusterings(series, return.objects = T, configs = cfgs)
+
+```
+
+
+## Results
+
+```{r res, echo=FALSE}
+require(ggplot2)
+require(methods)
+###
+#plot <- ggplot(dat, aes(stages,mem)) + geom_bar(aes(fill=stages), stat="identity") + ggtitle("Effectiveness") + ylab("Memory Allocated (MB)") + xlab("Stage")
+#plot
+```
+

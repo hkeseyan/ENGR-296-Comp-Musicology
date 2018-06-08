@@ -1,0 +1,176 @@
+---
+title: "CreateSongCSV"
+author: "Hovanes Keseyan"
+date: "March 11, 2018"
+geometry: margin=.75in
+output: html_document
+---
+
+# Initialize column headers, newline vector, tempo, and note lengths
+
+```{r initialize}
+x <- data.frame(0, 0, "Header", 1, NA, NA, stringsAsFactors=FALSE)
+y <- data.frame(0, 0, "0", 0, 0, 0, 0, stringsAsFactors=FALSE)
+names(x) <- c("track", "time", "event", "channel", "note", "velocity")
+names(y) <- names(x)
+
+# 24 MIDI clock units per second
+mcu <- 24
+# current time
+t <- x[nrow(x),2]
+# song length (in seconds)
+l <- 120
+# song length (in MIDI clock units)
+l <- l*mcu
+
+# tempo in beats per minute
+tempo <- 120
+# note lengths in MIDI clock units based on tempo
+f <- tempo*mcu/60-1
+h <- tempo*mcu/60/2-1
+q <- tempo*mcu/60/4-1
+```
+
+# Create rhythm from simple repeating beats
+
+```{r rhythm}
+# rhythm is on track 2
+tr <- 2
+y <- c(tr, 24, "Start_track", NA, NA, NA); x <- rbind(x, y)
+t <- 24
+
+# identify notes for certain sounds
+bl <- 31 # low bass
+bm <- 42 # mid bass
+sm <- 56 # mid snare
+sh <- 77 # high snare
+cm <- 64 # mid cymbal
+ch <- 82 # high cymbal
+
+# basic repeating beat
+while (t < l/4) {
+  y <- c(tr, t, "Note_on_c", tr, bl, 90); x <- rbind(x, y); t<-t+h
+  y <- c(tr, t, "Note_on_c", tr, bl, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, sm, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, sm, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, cm, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, cm, 0); x <- rbind(x, y); t<-t+1
+}
+# switch the beat
+while (t < 2*l/4) {
+  y <- c(tr, t, "Note_on_c", tr, bm, 90); x <- rbind(x, y); t<-t+h
+  y <- c(tr, t, "Note_on_c", tr, bm, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, sh, 90); x <- rbind(x, y); t<-t-1
+  y <- c(tr, t, "Note_on_c", tr, sh, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, ch, 90); x <- rbind(x, y); t<-t+h
+  y <- c(tr, t, "Note_on_c", tr, ch, 0); x <- rbind(x, y); t<-t+1
+}
+# switch back
+while (t < 3*l/4) {
+  y <- c(tr, t, "Note_on_c", tr, bl, 90); x <- rbind(x, y); t<-t+h
+  y <- c(tr, t, "Note_on_c", tr, bl, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, sm, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, sm, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, cm, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, cm, 0); x <- rbind(x, y); t<-t+1
+}
+# aggressive beat
+while (t < 4*l/4) {
+  y <- c(tr, t, "Note_on_c", tr, bl, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, bl, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, bm, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, bm, 0); x <- rbind(x, y); t<-t+1
+  
+  y <- c(tr, t, "Note_on_c", tr, sh, 90); x <- rbind(x, y); t<-t-1
+  y <- c(tr, t, "Note_on_c", tr, sh, 0); x <- rbind(x, y); t<-t+1
+    
+  y <- c(tr, t, "Note_on_c", tr, ch, 90); x <- rbind(x, y); t<-t+q
+  y <- c(tr, t, "Note_on_c", tr, ch, 0); x <- rbind(x, y); t<-t+1
+}
+
+y <- c(tr, t, "End_track", NA, NA, NA)
+x <- rbind(x, y)
+```
+
+
+# Create chorus 
+
+```{r chorus}
+#chorus is on track 3
+tr <-3
+y <- c(tr, 0, "Start_track", NA, NA, NA); x <- rbind(x, y)
+
+# length of chorus
+lc <- 8*mcu
+# length of each verse
+lv <- 21*mcu
+# time at which first chorus starts
+tcf <- 72
+# number of choruses
+nc <- (l-tcf)/(lc+lv)
+n <- seq(0, nc) 
+# times at which chorus starts
+tc <- rep(0, nc)
+tc <- tcf + n*(lc+lv)
+
+# generate set of random notes which will be the same chorus
+  rc <- round(rnorm(lc/(q+1), 70, 4),0)
+# chorus generating script
+for (i in 1:nc) {
+  t <- tc[i]
+  for (j in 1:(lc/(q+1))) {
+    y <- c(tr, t, "Note_on_c", tr, rc[j], 90); x <- rbind(x, y); t<-t+q
+    y <- c(tr, t, "Note_on_c", tr, rc[j], 0); x <- rbind(x, y); t<-t+1
+  }
+}
+
+y <- c(tr, t, "End_track", NA, NA, NA); x <- rbind(x, y)
+```
+
+
+# Create verse using randomization
+
+```{r verses}
+# verses are on track 4
+tr <- 4
+y <- c(tr, 0, "Start_track", NA, NA, NA); x <- rbind(x, y)
+
+# number of verses
+nv <- nc-1
+# times at which verse starts
+tv <- tc[1:nv] + lc + mcu # start verse a second after chorus ends
+
+# verse generating script
+for (i in 1:nv) {
+  t <- tv[i]
+  while (t < tv[i]+lv-2*mcu) {  # end verse 2 seconds before chorus starts
+  # generate random note every time
+    rv <- round(rnorm(1, 62, 6),0)
+    y <- c(tr, t, "Note_on_c", tr, rv, 90); x <- rbind(x, y); t<-t+q
+    y <- c(tr, t, "Note_on_c", tr, rv, 0); x <- rbind(x, y); t<-t+1
+  }
+}
+
+y <- c(tr, t, "End_track", NA, NA, NA); x <- rbind(x, y)
+```
+
+# Sort by duration and save as csv
+
+```{r export}
+# sort
+
+# add end of file row
+y <- c(0, 0, "End_of_file", NA, NA, NA); x <- rbind(x, y)
+head(x)
+tail(x)
+# save
+x[c(1:2, 4:6)] <- sapply(x[c(1:2, 4:6)], as.numeric)
+write.table(x, file = "createdsong.csv", row.names=F, col.names=F, quote=F, sep=", ", na=" ")
+```

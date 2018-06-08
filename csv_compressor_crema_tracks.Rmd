@@ -1,0 +1,75 @@
+---
+title: "csv_compressor_crema"
+author: "Hovanes Keseyan"
+date: "March 19, 2018"
+output: html_document
+---
+
+# Access Repository for Song Names and Load Songs to R
+
+```{r songnames}
+setwd("E:/DATA/CSV/wd") # set working directory to location of csv files
+songnames = list.files(pattern="*.csv") # retrieve song names from the working directory
+length(songnames) # check number of songs loaded
+mem <- list()
+
+songnames <- songnames[1:20] ###
+
+songs <- list()
+for (i in 1:length(songnames)) songs[[i]] <- read.csv(songnames[i]) # load every song and assign the song name to the name of the data set
+mem[1] <- object.size(songs) # size of uncompressed songs in memory
+names(songs) <- songnames
+```
+
+### Number of Songs in Repository: `r length(songnames)`
+
+# Compress Songs
+
+```{r songscompressed}
+
+songscompressed <- lapply(songs, function(x){x[x[,2]=="Note On",c(5,7)]})
+mem[2] <- object.size(songscompressed) # size of compressed songs in memory
+
+setwd("E:/DATA/CSV/wdcompressed") # set working directory to location where compressed files will write
+lapply(1:length(songscompressed), function(i) write.csv(songscompressed[[i]], 
+                                                file = paste0(names(songscompressed[i]), ".csv"),
+                                                row.names = FALSE))
+```
+
+# Divide Songs Into Tracks
+
+```{r tracks}
+tracks <- list()
+trackid <- lapply(songs, function(x){unique(x[,1])})
+tracks <- lapply(songs, function(x){lapply(trackid, function(t){tracks <- x[x[,1]==t,]})})
+
+mem[3] <- object.size(tracks) # size of uncompressed tracks in memory
+
+setwd("E:/DATA/CSV/tracks") # set working directory to location of where track files will write
+lapply(1:length(tracks), function(i) write.csv(tracks[[i]], 
+                                                file = paste0(names(tracks[i]), ".csv"),
+                                                row.names = FALSE))
+```
+
+
+# Compress Tracks
+
+```{r trackscompressed}
+
+trackscompressed <- lapply(tracks, function(x){x[x[,2]=="Note On",c(5,7)]}) ### check to make sure columns match (might have to shift 1 over)
+mem[4] <- object.size(trackscompressed) # size of compressed tracks in memory
+
+setwd("E:/DATA/CSV/trackscompressed") # set working directory to where compressed track files will write
+lapply(1:length(trackscompressed), function(i) write.csv(trackscompressed[[i]], 
+                                                file = paste0(names(trackscompressed[i]), ".csv"),
+                                                row.names = FALSE))
+```
+
+# Effectiveness of Compression
+
+```{r plots}
+stages <- c("US", "CS", "UT", "CT")
+plot(mem, stages) ### 
+```
+
+
